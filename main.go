@@ -10,7 +10,7 @@ import (
 	"io"
 
 	"cloud.google.com/go/storage"
-    "google.golang.org/api/option"
+	"google.golang.org/api/option"
 	"github.com/gin-gonic/gin"
 )
 
