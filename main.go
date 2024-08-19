@@ -12,7 +12,7 @@ import (
 
 // var csvFilePath = "/Users/pravinmenon/Documents/Coding/GO_Tutorial/Webhook code/data.csv"
 
-var csvFilePath = "https://drive.google.com/file/d/1ot7XncW3Jl9F4pNPmw2ZX3Bio10ACROc/view?usp=drive_link"
+var csvFilePath = "https://storage.googleapis.com/mc-webhook-data/data.csv"
 
 func main() {
 	// Create a new Gin router
