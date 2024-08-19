@@ -6,7 +6,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"context"
+	"io"
 
+	"cloud.google.com/go/storage"
+    "google.golang.org/api/option"
 	"github.com/gin-gonic/gin"
 )
 
@@ -55,7 +59,40 @@ func HandleWebhook(c *gin.Context) {
 }
 
 func writeToCSV(data map[string]interface{}) error {
-	file, err := os.OpenFile(csvFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	ctx := context.Background()
+
+    // Replace with the path to your service account key file
+    keyFilePath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+    client, err := storage.NewClient(ctx, option.WithCredentialsFile(keyFilePath))
+    if err != nil {
+         log.Fatal((err))
+    }
+    defer client.Close()
+
+	bucketName := "mc-webhook-data"
+	// objectName := csvFilePath
+
+	// Download the file
+	rc, err := client.Bucket(bucketName).Object(csvFilePath).NewReader(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rc.Close()
+
+	// Write the file contents to a local temporary file
+	tmpFile, err := os.CreateTemp("", "gcs_csv_")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	if _, err := io.Copy(tmpFile, rc); err != nil {
+		log.Fatal(err)
+	}
+
+	file, err := os.OpenFile(tmpFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -95,6 +132,18 @@ func writeToCSV(data map[string]interface{}) error {
 		return err
 	}
 
+	wc := client.Bucket(bucketName).Object(objectName).NewWriter(ctx)
+	defer wc.Close()
+
+	f, err := os.Open(tmpFile.Name())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	if _, err := io.Copy(wc, f); err != nil {
+		log.Fatal(err)
+	}
 	return nil
 }
 
